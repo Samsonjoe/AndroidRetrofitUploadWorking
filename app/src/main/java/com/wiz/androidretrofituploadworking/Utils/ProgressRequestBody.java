@@ -15,11 +15,11 @@ import okio.BufferedSink;
 
 public class ProgressRequestBody extends RequestBody {
 
-    private java.io.File file;
+    private File file;
     private UploadcallBacks listener;
     private static  final int DEFAULT_BUFFER_SIZE = 4096;
 
-    public ProgressRequestBody(java.io.File file, UploadcallBacks listener) {
+    public ProgressRequestBody(File file, UploadcallBacks listener) {
         this.file = file;
         this.listener = listener;
     }
@@ -44,7 +44,7 @@ public class ProgressRequestBody extends RequestBody {
 
         try{
             int read;
-            Handler handler = new android.os.Handler(Looper.getMainLooper());
+            Handler handler = new Handler(Looper.getMainLooper());
             while ((read = in.read(buffer)) != -1)
             {
                 handler.post(new ProgressUpdater(uploaded, fileLength));

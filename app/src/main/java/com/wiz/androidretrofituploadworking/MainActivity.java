@@ -14,6 +14,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -22,6 +23,7 @@ import android.widget.Toast;
 import com.ipaulpro.afilechooser.utils.FileUtils;
 import com.wiz.androidretrofituploadworking.Remote.IUploadAPI;
 import com.wiz.androidretrofituploadworking.Remote.RetrofitClient;
+import com.wiz.androidretrofituploadworking.Utils.Permissions;
 import com.wiz.androidretrofituploadworking.Utils.ProgressRequestBody;
 import com.wiz.androidretrofituploadworking.Utils.UploadcallBacks;
 
@@ -34,9 +36,16 @@ import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity implements UploadcallBacks {
 
-   // public static final String BASE_URL = "http://10.0.2.2/"; FOR USING ON VIRTUAL PHONE ON PC
+    private static final String TAG = "MainActivity";
+    private static final int VERIFY_PERMISSIONS_REQUEST = 1;
 
-    public static final String BASE_URL = "YOUR_URL";
+
+    //FOR USING ON VIRTUAL PHONE ON PC
+  //  public static final String BASE_URL = "http://10.0.2.2/";
+
+   // public static final String BASE_URL = "https://collaborationkenya.minet.com/MinetAPI/tsc/";
+   public static final String BASE_URL ="https://minetkenya.minet.com/minetapi/v1/tsc/";
+
     private static final int REQUEST_PERMISSION = 1000;
     private static final int PICK_FILE_REQUEST = 1001 ;
 
@@ -61,12 +70,19 @@ public class MainActivity extends AppCompatActivity implements UploadcallBacks {
         setContentView(R.layout.activity_main);
 
         //check permission
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED);
+     /*   if (ActivityCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED);
         {
             ActivityCompat.requestPermissions(this,new String[]{
                     Manifest.permission.READ_EXTERNAL_STORAGE
             },REQUEST_PERMISSION);
+        }*/
+
+        if(checkPermissionArray(Permissions.PERMISSIONS)){
+
+        }else{
+            verifyPermissions(Permissions.PERMISSIONS);
         }
+
 
         //Service
         mService = getAPIUpload();
@@ -92,44 +108,100 @@ public class MainActivity extends AppCompatActivity implements UploadcallBacks {
         });
     }
 
-    private void uploadFile() {
-        if (selectedFileUri != null)
-        {
-            dialog = new ProgressDialog(MainActivity.this);
-            dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-            dialog.setMessage("Uploading....");
-            dialog.setMax(100);
-            dialog.setCancelable(false);
-            dialog.show();
 
-            File file = FileUtils.getFile(this,selectedFileUri);
-            ProgressRequestBody requestFile = new ProgressRequestBody(file,this);
+    /***
+     * verify all the permissions passed to the array
+     * @param permissions
+     */
+    private void verifyPermissions(String[] permissions) {
+        Log.d(TAG, "verifyPermissions: verifying permissions.");
 
-            final MultipartBody.Part body = MultipartBody.Part.createFormData("uploaded_file",file.getName(),requestFile);
-
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    mService.uploadFile(body)
-                            .enqueue(new Callback<String>() {
-                                @Override
-                                public void onResponse(Call<String> call, Response<String> response) {
-                                    dialog.dismiss();
-                                    Toast.makeText(MainActivity.this, "Uploaded", Toast.LENGTH_SHORT).show();
-                                }
-
-                                @Override
-                                public void onFailure(Call<String> call, Throwable t) {
-                                    dialog.dismiss();
-                                    Toast.makeText(MainActivity.this,t.getMessage(), Toast.LENGTH_SHORT).show();
-
-                                }
-                            });
-                }
-            }).start();
-        }
-
+        ActivityCompat.requestPermissions(
+                MainActivity.this,
+                permissions,
+                VERIFY_PERMISSIONS_REQUEST
+        );
     }
+
+
+    /**
+     * Check an array of permissions
+     * @param permissions
+     * @return
+     */
+
+    public boolean checkPermissionArray(String[] permissions) {
+        Log.d(TAG, "checkPermissionArray: checking permissions array.");
+
+        for (int i = 0; i<permissions.length; i++){
+            String check = permissions[i];
+            if(!checkPermissions(check)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Check a single permission it has been verified
+     * @param permission
+     * @return
+     */
+    public boolean checkPermissions(String permission) {
+        Log.d(TAG, "checkPermissions: checking permission " + permission);
+
+        int permissionRequest = ActivityCompat.checkSelfPermission(MainActivity.this, permission);
+
+        if(permissionRequest != PackageManager.PERMISSION_GRANTED){
+            Log.d(TAG, "checkPermissions: \n Permission wa not granted for: " + permission);
+            return false;
+        }
+        else{
+            Log.d(TAG, "checkPermissions: \n permission was granted for: " + permission);
+            return true;
+        }
+    }
+
+
+    private void uploadFile() {
+            if (selectedFileUri != null)
+            {
+                dialog = new ProgressDialog(MainActivity.this);
+                dialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                dialog.setMessage("Uploading....");
+                dialog.setIndeterminate(false);
+                dialog.setMax(100);
+                dialog.setCancelable(false);
+                dialog.show();
+
+                File file = FileUtils.getFile(this,selectedFileUri);
+                ProgressRequestBody requestFile = new ProgressRequestBody(file,this);
+
+                final MultipartBody.Part body = MultipartBody.Part.createFormData("uploaded_file",file.getName(),requestFile);
+
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mService.uploadFile(body)
+                                .enqueue(new Callback<String>() {
+                                    @Override
+                                    public void onResponse(Call<String> call, Response<String> response) {
+                                        dialog.dismiss();
+                                        Toast.makeText(MainActivity.this, "Uploaded", Toast.LENGTH_SHORT).show();
+                                    }
+
+                                    @Override
+                                    public void onFailure(Call<String> call, Throwable t) {
+                                        dialog.dismiss();
+                                        Toast.makeText(MainActivity.this,t.getMessage(), Toast.LENGTH_SHORT).show();
+
+                                    }
+                                });
+                    }
+                }).start();
+            }
+
+        }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -146,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements UploadcallBacks {
         }
     }
 
-  /*  @Override
+    /* @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == Activity.RESULT_OK)
@@ -190,15 +262,16 @@ public class MainActivity extends AppCompatActivity implements UploadcallBacks {
             if(selectedFileUri != null && !selectedFileUri.getPath().isEmpty()) {
                 imageView.setImageURI(selectedFileUri);
                 Toast.makeText(MainActivity.this, uploadFileName, Toast.LENGTH_LONG).show();
+                btnUpload.setEnabled(true);
             }
-            else
+            else{
                 Toast.makeText(this, "Cannot upload file to server", Toast.LENGTH_SHORT).show();
-
+                btnUpload.setEnabled(false);
+            }
 
 
             //uploadFileName =  data.getData().getPath();
             // uploadFilePath = data.getData().getPath();
-
 
 
         }

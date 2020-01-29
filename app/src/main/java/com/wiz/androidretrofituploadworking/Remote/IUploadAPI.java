@@ -10,6 +10,7 @@ import retrofit2.http.Part;
 public interface IUploadAPI {
 
     @Multipart
-    @POST("upload/uploads.php")
+  //  @POST("upload/upload.php")
+    @POST("upload/upload.php")
     Call<String> uploadFile(@Part MultipartBody.Part file) ;
 }
